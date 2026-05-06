@@ -1,6 +1,6 @@
 # PayCore
 
-ASP.NET Core 8 Web API for payment processing.
+ASP.NET Core 8 Web API for payment processing. Changed for testing.
 
 ## Solution structure
 
