@@ -1,12 +1,14 @@
 using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PayCore.API.Middleware;
+using PayCore.Core.Interfaces;
 using PayCore.Infrastructure.Data;
+using PayCore.Infrastructure.Identity;
+using PayCore.Infrastructure.Services;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -31,14 +33,13 @@ try
             retainedFileCountLimit: 30,
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"));
 
-    // ── Controllers ──────────────────────────────────────────────────────────
     builder.Services.AddControllers();
 
-    // ── RFC 7807 ProblemDetails + global exception handler ────────────────────
+    // RFC 7807 ProblemDetails + global exception handler
     builder.Services.AddProblemDetails();
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-    // ── CORS ─────────────────────────────────────────────────────────────────
+    // CORS
     builder.Services.AddCors(options =>
         options.AddPolicy("ReactFrontend", policy =>
             policy.WithOrigins("http://localhost:3000")
@@ -46,7 +47,23 @@ try
                   .AllowAnyMethod()
                   .AllowCredentials()));
 
-    // ── JWT Authentication ────────────────────────────────────────────────────
+    // EF Core + PostgreSQL (must precede Identity)
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+    // ASP.NET Core Identity — API-only (no cookie schemes)
+    builder.Services
+        .AddIdentityCore<AppUser>(options =>
+        {
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequiredLength = 8;
+            options.User.RequireUniqueEmail = true;
+        })
+        .AddRoles<IdentityRole>()
+        .AddEntityFrameworkStores<AppDbContext>()
+        .AddDefaultTokenProviders();
+
+    // JWT Authentication
     var jwtCfg = builder.Configuration.GetSection("Jwt");
     var keyBytes = Encoding.UTF8.GetBytes(
         jwtCfg["Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured"));
@@ -70,7 +87,11 @@ try
 
     builder.Services.AddAuthorization();
 
-    // ── Swagger / OpenAPI ─────────────────────────────────────────────────────
+    // Application services
+    builder.Services.AddScoped<ITokenService, TokenService>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
+
+    // Swagger / OpenAPI
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
     {
@@ -104,16 +125,26 @@ try
         });
     });
 
-    // ── EF Core + PostgreSQL ──────────────────────────────────────────────────
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-    // ── Health checks ─────────────────────────────────────────────────────────
+    // Health checks
     builder.Services.AddHealthChecks()
         .AddDbContextCheck<AppDbContext>("database");
 
-    // ─────────────────────────────────────────────────────────────────────────
     var app = builder.Build();
+
+    // Seed roles on startup — skips gracefully when DB is unavailable
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            await RoleSeeder.SeedAsync(roleManager);
+            Log.Information("Roles seeded: {Roles}", string.Join(", ", RoleSeeder.Roles));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Role seeding skipped — ensure the database is available and migrations are applied");
+        }
+    }
 
     app.UseExceptionHandler();
 
