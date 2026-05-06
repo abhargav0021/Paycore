@@ -1,0 +1,70 @@
+## .NET / C#
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+TestResults/
+*.nupkg
+*.snupkg
+*.nuspec
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/PublishProfiles/
+PublishScripts/
+packages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+## .NET Core
+*.swp
+*.*~
+project.lock.json
+.DS_Store
+*.pyc
+nupkg/
+**/launchSettings.json
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## EF Core migrations (keep the folder, ignore auto-generated snapshot optionally)
+# If you want to commit migrations, remove the next line:
+# **/Migrations/
+
+## Secrets / environment
+*.env
+.env
+.env.local
+.env.*.local
+appsettings.Production.json
+appsettings.Staging.json
+**/secrets.json
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+## Node (for future React frontend)
+node_modules/
+dist/
+.next/
