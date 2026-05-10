@@ -25,6 +25,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             ArgumentException or ArgumentNullException => (StatusCodes.Status400BadRequest, "Bad Request"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
+            InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
             OperationCanceledException => (StatusCodes.Status499ClientClosedRequest, "Client Closed Request"),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred")
         };

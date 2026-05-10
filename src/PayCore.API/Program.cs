@@ -1,4 +1,6 @@
 using System.Text;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -6,8 +8,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PayCore.API.Middleware;
 using PayCore.Core.Interfaces;
+using PayCore.Core.Validators;
 using PayCore.Infrastructure.Data;
 using PayCore.Infrastructure.Identity;
+using PayCore.Infrastructure.Repositories;
 using PayCore.Infrastructure.Services;
 using Serilog;
 
@@ -90,6 +94,14 @@ try
     // Application services
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+    builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+    builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+    builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+
+    // FluentValidation
+    builder.Services.AddFluentValidationAutoValidation();
+    builder.Services.AddValidatorsFromAssemblyContaining<HireEmployeeRequestValidator>();
 
     // Swagger / OpenAPI
     builder.Services.AddEndpointsApiExplorer();
